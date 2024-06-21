@@ -1,0 +1,15 @@
+indexes:
+
+- kind: Score
+  properties:
+  - name: name
+    direction: asc
+  - name: score
+    direction: desc
+- kind: Petition
+  properties:
+  - name: title
+    direction: asc
+  - name: date
+    direction: desc
+    

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>User_sign.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WebAndCloud</a> &gt; <a href="index.source.html" class="el_package">foo</a> &gt; <span class="el_source">User_sign.java</span></div><h1>User_sign.java</h1><pre class="source lang-java linenums">package foo;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.google.appengine.api.datastore.Entity;
+
+public class User_sign {
+    private String id;
+    private String email;
+    private String name;
+    private String token;
+    private List&lt;Long&gt; signedPetitions;
+
+<span class="nc" id="L15">    public User_sign(String id, String mail, String name) {</span>
+<span class="nc" id="L16">        this.id = id;</span>
+<span class="nc" id="L17">        this.email = mail;</span>
+<span class="nc" id="L18">        this.name = name;</span>
+<span class="nc" id="L19">        this.signedPetitions = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L20">    }</span>
+
+<span class="nc" id="L22">    public User_sign() {</span>
+<span class="nc" id="L23">    }</span>
+
+    public Entity toEntity() {
+<span class="nc" id="L26">        Entity entity = new Entity(&quot;User&quot;, id);</span>
+<span class="nc" id="L27">        entity.setProperty(&quot;email&quot;, email);</span>
+<span class="nc" id="L28">        entity.setProperty(&quot;name&quot;, name);</span>
+<span class="nc" id="L29">        entity.setProperty(&quot;signedPetitions&quot;, signedPetitions);</span>
+<span class="nc" id="L30">        return entity;</span>
+    }
+
+    public static User_sign fromEntity(Entity entity) {
+<span class="nc" id="L34">        String id = entity.getKey().getName();</span>
+<span class="nc" id="L35">        String email = (String) entity.getProperty(&quot;email&quot;);</span>
+<span class="nc" id="L36">        String name = (String) entity.getProperty(&quot;name&quot;);</span>
+<span class="nc" id="L37">        List&lt;Long&gt; signedPetitions = (List&lt;Long&gt;) entity.getProperty(&quot;signedPetitions&quot;);</span>
+<span class="nc" id="L38">        User_sign user = new User_sign(id, email, name);</span>
+<span class="nc bnc" id="L39" title="All 2 branches missed.">        user.signedPetitions = signedPetitions != null ? signedPetitions : new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L40">        return user;</span>
+    }
+
+    public void addSignedPetition(Long petitionId) {
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        if (!signedPetitions.contains(petitionId)) {</span>
+<span class="nc" id="L45">            signedPetitions.add(petitionId);</span>
+        }
+<span class="nc" id="L47">    }</span>
+
+    public boolean hasSignedPetition(Long petitionId) {
+<span class="nc" id="L50">        return signedPetitions.contains(petitionId);</span>
+    }
+
+    // Getters and setters
+
+    public String getId() {
+<span class="nc" id="L56">        return id;</span>
+    }
+
+    public void setId(String id) {
+<span class="nc" id="L60">        this.id = id;</span>
+<span class="nc" id="L61">    }</span>
+
+    public String getEmail() {
+<span class="nc" id="L64">        return email;</span>
+    }
+
+    public void setEmail(String email) {
+<span class="nc" id="L68">        this.email = email;</span>
+<span class="nc" id="L69">    }</span>
+
+    public String getName() {
+<span class="nc" id="L72">        return name;</span>
+    }
+
+    public void setName(String name) {
+<span class="nc" id="L76">        this.name = name;</span>
+<span class="nc" id="L77">    }</span>
+
+    public String getToken() {
+<span class="nc" id="L80">        return token;</span>
+    }
+
+    public void setToken(String token) {
+<span class="nc" id="L84">        this.token = token;</span>
+<span class="nc" id="L85">    }</span>
+
+    public List&lt;Long&gt; getSignedPetitions() {
+<span class="nc" id="L88">        return signedPetitions;</span>
+    }
+
+    public void setSignedPetitions(List&lt;Long&gt; signedPetitions) {
+<span class="nc" id="L92">        this.signedPetitions = signedPetitions;</span>
+<span class="nc" id="L93">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

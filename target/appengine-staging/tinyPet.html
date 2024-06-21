@@ -1,0 +1,639 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Tiny Pet</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.min.css">
+<script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+
+
+<script src="https://unpkg.com/mithril/mithril.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+</head>
+<body>
+	<script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
+<script>	
+
+
+var Profile={
+  name:"",
+  email:"",
+  ID:"",
+  url:"",
+  nextToken:"",
+  list:[],
+  view: function(){
+	return m('div', {class:'container'}, [
+  	  m("h1", {class: 'title'}, "name:"+Profile.name),
+	  m("h2", {class: 'subtitle'}, "email:"+Profile.email),
+	  m("img",{"src":Profile.url}),
+	  m("button",{class:"buttonClient WebÂ 1", onclick: function(e) { Profile.loadList()}},"Msgs"),
+	  m("button",{class:"button", onclick: function(e) { Profile.postMessage()}},"Post Dummy"),
+	  m("div",m(PostView,{profile: Profile}))
+	])
+  },
+  loadList: function() {
+      return m.request({
+          method: "GET",
+          url: "_ah/api/myApi/v1/collectionresponse_entity"+'?access_token=' + encodeURIComponent(Profile.ID)
+          })
+      .then(function(result) {
+      	console.log("load_list:",result)
+      	Profile.list=result.items
+          if ('nextPageToken' in result) {
+	        	Profile.nextToken= result.nextPageToken
+          } else {
+          	Profile.nextToken=""
+          }})
+  },
+}
+
+var DiceGame={
+  turn : 0,
+  d1 : 1,
+  d2 : 1,
+  name : Profile.name,
+  description : Profile.name,
+  tags : "",
+  score : 0,
+
+   createPetition: () => {
+        if (!Profile.ID) {
+            console.error("User not signed in.");
+            return;
+        }
+
+        return m.request({
+            method: "POST",
+            url: "/_ah/api/myApi/v1/createPetition",
+            params: {
+                title: DiceGame.name ,
+                description: DiceGame.description,
+                tags: DiceGame.tags,
+                creator: Profile.email
+            }
+        }).then(function(result) {
+            console.log("Petition created:", result);
+            petitionView.loadList('').then(() => {
+                m.redraw(true);
+                console.log('refreshed')
+            });
+        }).catch(function(error) {
+            console.error("Error creating petition:", error);
+            m.redraw();
+        });
+    },
+ } 
+
+ var petitionView = {
+    activePetition: '',
+    myPetition: [],
+    mylist: [],
+	    loadList: function(sp) {
+        console.log(sp)
+        if (sp.length>1){
+          return m.request({
+	            method: "GET",
+	            url: `_ah/api/myApi/v1/petition/searchByTag/${sp}/`
+	        })
+	        .then(function(result) {
+            petitionView.mylist = result.items
+	        	console.log("got:",result.items)
+	        	m.redraw(true) 
+	        })
+        }else{
+          return m.request({
+	            method: "GET",
+	            url: "_ah/api/myApi/v1/allpetition/"
+	        })
+	        .then(function(result) {
+            petitionView.mylist = result.items
+	        	console.log("got:",result.items)
+	        	m.redraw(true) 
+	        })}
+	        
+			
+	    },
+      search: function(e) {
+      e.preventDefault();
+      const searchParams =  e.target.elements.tags.value;
+      petitionView.loadList(searchParams);
+    },
+    oninit: function() {
+                    var id = Profile.email
+                    m.request({
+                      method: "GET",
+                      url: `_ah/api/myApi/v1/user/${id}/petitions`
+                    })
+                    .then(function(result) {
+                      petitionView.myPetition = result.items;
+                      console.log("myPetition got:", result);
+                      m.redraw();
+                    })
+                  },
+    view: function() {
+        return m('div', [
+            m('div', {class: 'subtitle'}, "Créer votre pétition ci-dessous :"),
+            m("input[type=text][placeholder=name]", {
+                value: DiceGame.name,
+                class: 'input is-rounded m-3',
+                oninput: function(e) {
+                    DiceGame.name = e.target.value;
+                }
+            }),
+            m("input[type=textarea][placeholder=description]", {
+                value: DiceGame.description,
+                class: 'input is-rounded m-3',
+                oninput: function(e) {
+                    DiceGame.description = e.target.value;
+                }
+            }),
+            m("input[type=textarea][placeholder=tags]", {
+                value: DiceGame.tags,
+                class: 'input is-rounded m-3',
+                oninput: function(e) {
+                    DiceGame.tags = e.target.value;
+                }
+            }),
+            m('button', {
+                class: 'button is-link m-4',
+                onclick: function(e) {
+                    DiceGame.createPetition();
+                    petitionView.loadList('');
+                    m.redraw()
+                }
+            }, "Publier"),m('div', [
+      m('div', { class: 'subtitle' }, "Mes pétitions"),
+      m('table', { class: 'table is-striped' }, [
+        m('thead', [
+          m('tr', [
+            m('th', { width: "40%" }, "Titre"),
+            m('th', { width: "20%" }, "Date"),
+            m('th', { width: "20%" }, "Tags"),
+            m('th', { width: "10%" }, "NB"),
+            m('th', { width: "10%" }, "Action"),
+          ])
+        ]),
+        m('tbody',
+          petitionView.myPetition.map(function(item) {
+            return m('tr', [
+              m('td', item.properties.title),
+              m('td', new Date(item.properties.date).toLocaleString()),
+              m('td', item.properties.tags.join(', ')),
+              m('td', item.properties.nb_sign),
+              m('td',
+                m('button', {
+                  class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded',
+                  onclick: function() {
+                    m.request({
+                      method: "GET",
+                      url: `_ah/api/myApi/v1/petition/${item.key.id}`
+                    })
+                    .then(function(result) {
+                      petitionView.activePetition = result;
+                      console.log("activePetition got:", result);
+                      m.redraw();
+                    });
+                  }
+                }, "Voir la pétition")
+              )
+            ]);
+          })
+        )
+      ]),
+      petitionView.activePetition ? m(petitionDetailsView) : null
+    ])
+        ]);
+    }
+}
+
+var myScore = {
+    	list: [],
+    	loadList: function(name) {
+	        return m.request({
+	            method: "GET",
+	            url: "_ah/api/myApi/v1/myscores/"+Profile.name
+	        })
+	        .then(function(result) {
+	            myScore.list = result.items
+	        	console.log("got:",result.items)
+	        	m.redraw(true) 
+	        })
+	    }
+	}
+
+
+  var allPetition = {
+  oninit: petitionView.loadList,
+  view: function() {
+    return m('div', [
+      m('div', { class: 'subtitle' }, "Les pétitions du moment"),
+      m('form', { onsubmit: petitionView.search }, [
+        m('input', { type: 'text', name: 'tags', placeholder: 'Rechercher par tags' }),
+        m('button', { type: 'submit', class: 'button is-primary' }, 'Rechercher')
+      ]),
+      m('table', { class: 'table is-striped' }, [
+        m('thead', [
+          m('tr', [
+            m('th', { width: "20%" }, "Titre"),
+            m('th', { width: "10%" }, "Créateur"),
+            m('th', { width: "20%" }, "Date"),
+            m('th', { width: "20%" }, "Tags"),
+            m('th', { width: "10%" }, "NB"),
+            m('th', { width: "10%" }, "Action"),
+          ])
+        ]),
+        m('tbody',
+          petitionView.mylist.map(function(item) {
+            return m('tr', [
+              m('td', item.properties.title),
+              m('td', item.properties.creator),
+              m('td', new Date(item.properties.date).toLocaleString()),
+              m('td', item.properties.tags.join(', ')),
+              m('td', item.properties.nb_sign),
+              m('td',
+                m('button', {
+                  class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded',
+                  onclick: function() {
+                    m.request({
+                      method: "GET",
+                      url: `_ah/api/myApi/v1/petition/${item.key.id}`
+                    })
+                    .then(function(result) {
+                      petitionView.activePetition = result;
+                      console.log("activePetition got:", result);
+                      m.redraw();
+                    });
+                  }
+                }, "Voir la pétition")
+              )
+            ]);
+          })
+        )
+      ]),
+      petitionView.activePetition ? m(petitionDetailsView) : null
+    ]);
+  }
+};
+
+var petitionDetailsView = {
+  oninit: function(vnode) {
+    // Initialiser l'état de chargement et les signataires
+    petitionView.loadingSigners = true;
+    petitionView.signersError = null;
+    petitionView.activePetition.signers = [];
+
+    // Récupérer les utilisateurs qui ont signé la pétition lors de l'initialisation
+    var petitionId = petitionView.activePetition.key.id;
+    m.request({
+      method: "GET",
+      url: `_ah/api/myApi/v1/petition/${petitionId}/users`
+    })
+    .then(function(result) {
+      petitionView.activePetition.signers = result;
+      petitionView.loadingSigners = false;
+      console.log('après avoir fait le calcul');
+      console.log(result);
+      m.redraw.sync();
+    })
+    .catch(function(error) {
+      petitionView.signersError = "Erreur lors de la récupération des utilisateurs qui ont signé la pétition.";
+      petitionView.loadingSigners = false;
+      console.error("Erreur lors de la récupération des utilisateurs qui ont signé la pétition:", error);
+      m.redraw.sync(); 
+    });
+  },
+  view: function() {
+    var petition = petitionView.activePetition;
+
+    if (!petition) {
+      return null;
+    }
+
+    // Afficher un message de chargement si les signataires sont en cours de récupération
+    if (petitionView.loadingSigners) {
+      return m('div', { class: 'petition-details-banner' }, 'Chargement des signataires...');
+    }
+
+    // Afficher un message d'erreur si une erreur s'est produite lors de la récupération des signataires
+    if (petitionView.signersError) {
+      return m('div', { class: 'petition-details-banner' }, petitionView.signersError);
+    }
+
+    var signers = petition.signers || [];
+
+    return m('div', { class: 'petition-details-banner container mx-auto p-4 bg-white shadow-md rounded' }, [
+      m('h2', { class: 'text-2xl font-bold mb-4' }, petition.properties.title),
+      m('p', { class: 'mb-2' }, [
+        m('strong', 'Créateur: '),
+        petition.properties.creator
+      ]),
+      m('p', { class: 'mb-2' }, [
+        m('strong', 'Date: '),
+        new Date(petition.properties.date).toLocaleString()
+      ]),
+      m('p', { class: 'mb-2' }, [
+        m('strong', 'Description: '),
+        petition.properties.description
+      ]),
+      m('p', { class: 'mb-2' }, [
+        m('strong', 'Tags: '),
+        petition.properties.tags.join(', ')
+      ]),
+      m('p', { class: 'mb-4' }, [
+        m('strong', 'Signataires: ')
+      ]),
+      m('ul', { class: 'list-disc pl-5 mb-4' }, signers.items.length > 0 ? 
+        signers.items.map(function(user) {
+          return m('li', user.properties.name); // Afficher le nom des utilisateurs
+        }) : m('p', 'Pas de signataires')
+      ),
+      m('div', { class: 'flex space-x-2' }, [
+        m('button', {
+          class: 'bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow',
+          onclick: function() {
+            petitionView.activePetition = null;
+            m.redraw();
+          }
+        }, 'Fermer'),
+        m('button', {
+          class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded',
+          onclick: function() {
+            m.request({
+              method: "GET",
+              url: `_ah/api/myApi/v1/petition/${petition.key.id}/signer/${Profile.id}`
+            })
+            .then(function(result) {
+              console.log("Sign got:", result);
+              m.redraw();
+            })
+            .catch(function(error) {
+              console.error("Erreur lors de la signature de la pétition:", error);
+            });
+            petitionView.activePetition = null;
+            m.redraw();
+          }
+        }, 'Signer'),
+      ]),
+    ]);
+  }
+};
+
+
+
+
+
+
+
+var MyScoreView = {
+  oninit: function() {
+    if (petitionView.activePetition){
+      m.redraw(true) 
+    }else{
+      m.redraw(true) 
+    }
+    myScore.loadList(DiceGame.name);
+  },
+  view: function() {
+    return m('div', [
+      m('div',{class:'subtitle'},"L"),
+      m('table', {class:'table is-striped'},[
+        m('tr', [
+          m('th', {width:"50px"}, "La pétition de "+ petitionView.activePetition.title),
+        ]),m('td', m('label', petitionView.activePetition.description)),
+      ])
+    ])
+  }
+}
+
+
+
+function onSignIn(googleUser) {
+  var profile = googleUser.getBasicProfile();
+  Profile.name=profile.getName();
+  Profile.email=profile.getEmail();
+  Profile.ID=googleUser.getAuthResponse().id_token;
+  Profile.url=profile.getImageUrl();
+
+  m.route.set("/accueil")
+}
+function handleCredentialResponse(response) {
+	console.log("callback called:"+response.credential)
+  // decodeJwtResponse() is a custom function defined by you
+  // to decode the credential response.
+  const responsePayload = jwt_decode(response.credential);
+  Profile.id=responsePayload.sub;
+  console.log("ID: " + responsePayload.sub);
+  console.log('Full Name: ' + responsePayload.name);
+  console.log('Given Name: ' + responsePayload.given_name);
+  console.log('Family Name: ' + responsePayload.family_name);
+  console.log("Image URL: " + responsePayload.picture);
+  console.log("Email: " + responsePayload.email);
+
+  m.request({
+          method: "POST",
+          url: `_ah/api/myApi/v1/auth/`,
+          body: {
+            id : responsePayload.sub,
+            email : responsePayload.email,
+            name : responsePayload.given_name,
+            token : response.credential
+          }
+        })
+        .then(function(result) {
+          DiceGame.name= responsePayload.name
+          Profile.name= responsePayload.name
+          Profile.email= responsePayload.email
+          Profile.ID=response.credential
+          Profile.url= responsePayload.picture 
+          m.route.set("/secret")
+        });
+ }
+
+
+ var Hello = {
+   view: function() {
+   	return m('div', {class:'container'}, [
+           m("h1", {class: 'title'}, 'Tiny pets'),
+           m('div',{class: 'tile is-ancestor'},[
+               m("div", {class: 'tile'}, m('div',{class:'tile is-child box'},m(petitionView))),
+               m("div", {class: 'tile'}, m('div',{class:'tile is-child box'},m(allPetition))),
+           ])
+       ])
+   }
+}
+
+var Login = {
+  view: function() {
+    return m('div', {class:'container mx-auto mt-10 p-5 bg-white rounded shadow-lg'},
+      [
+        m("h1", {class: 'text-3xl font-bold text-center mb-5'}, 'Tiny Pet - Sauvons les petits animaux'),
+        m("p", {class: 'text-lg text-center text-gray-700 mb-8'}, 'Bienvenue sur Tiny Pet, la plateforme de pétitions pour sauver les petits animaux !'),
+        m("div", {
+            "id":"g_id_onload",
+            "data-client_id":"205661793547-8od4bq4hgsoipkbff3t4r6olvtlh1pau.apps.googleusercontent.com",
+            "data-callback":"handleCredentialResponse",
+            "class": "flex justify-center"
+        }),
+        m("div", {
+            "class":"g_id_signin",
+            "data-type":"standard"
+        }),
+      ]
+    );
+  }
+}
+
+var Home = {
+  view: function() {
+    return m('div', {class:'container mx-auto mt-10 p-5 bg-white rounded shadow-lg'},
+      [
+        m("h1", {class: 'text-3xl font-bold text-center mb-5'}, 'Tiny Pet - Sauvons les petits animaux'),
+        m("p", {class: 'text-lg text-center text-gray-700 mb-8'}, 'Bienvenue sur Tiny Pet, la plateforme de pétitions pour sauver les petits animaux !'),
+        m("div", {class: 'flex flex-wrap justify-center items-center'},
+          [
+            m("div", {class: 'w-full sm:w-1/2 md:w-1/3 lg:w-1/4 px-4 mb-8'},
+              [
+                m("svg", {xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', class: 'w-16 h-16 text-blue-500 mx-auto mb-4'},
+                  [
+                    m("path", {d: 'M12 2C6.487 2 2 6.487 2 12c0 2.794 1.204 5.389 3.312 7.172l.224.206c.1.09.197.178.292.27.435-.412.882-.777 1.344-1.09.683-.43 1.4-.78 2.129-1.08C9.227 16.195 9.011 16 9.5 16h5c.5 0 .273-.195 1.006-.588.729.3 1.446.65 2.129 1.08.462.314.91.678 1.344 1.09.095-.092.192-.18.292-.27l.224-.206C20.796 17.389 22 14.794 22 12c0-5.513-4.487-10-10-10zM12 18c-3.308 0-6-2.692-6-6s2.692-6 6-6 6 2.692 6 6-2.692 6-6 6z'})
+                  ]
+                ),
+                m("h2", {class: 'text-lg font-semibold text-center'}, 'Soutenez les pétitions'),
+                m("p", {class: 'text-sm text-center text-gray-600'}, 'Parcourez nos pétitions et soutenez celles qui vous tiennent à cœur.')
+              ]
+            ),
+            m("div", {class: 'w-full sm:w-1/2 md:w-1/3 lg:w-1/4 px-4 mb-8'},
+              [
+                m("svg", {xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', class: 'w-16 h-16 text-green-500 mx-auto mb-4'},
+                  [
+                    m("path", {d: 'M20.65 10.65l-8-8C12.26 2.26 12.13 2.19 12 2S11.74 2.26 11.65 2.35l-8 8c-.31.31-.47.72-.47 1.15v10c0 .55.45 1 1 1h16c.28 0 .52-.11.7-.29s.29-.42.29-.71v-10c0-.43-.16-.84-.45-1.15zM13 19h-2v-3h2v3zm4 0h-2v-3h2v3zm2-5H7v-1.56l3.53-3.53c.19-.19.44-.31.7-.31H10c-.55 0-1-.45-1-1V5h10v7zm-4 0h-2V9h2v5z'})
+                  ]
+                ),
+                m("h2", {class: 'text-lg font-semibold text-center'}, 'Créez votre propre pétition'),
+                m("p", {class: 'text-sm text-center text-gray-600'}, 'N\'hésitez pas à créer une pétition pour une cause qui vous tient à cœur.')
+              ]
+            ),
+            m("div", {class: 'w-full sm:w-1/2 md:w-1/3 lg:w-1/4 px-4 mb-8'},
+              [
+                m("svg", {xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', class: 'w-16 h-16 text-yellow-500 mx-auto mb-4'},
+                  [
+                    m("path", {d: 'M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12s4.477 10 10 10 10-4.477 10-10zm-6.228-4.163l-5.072 5.071-2.035-2.036-1.414 1.414 3.449 3.448 6.486-6.486-1.414-1.411z'})
+                  ]
+                ),
+                m("h2", {class: 'text-lg font-semibold text-center'}, 'Suivez les progrès'),
+                m("p", {class: 'text-sm text-center text-gray-600'}, 'Consultez les progrès de vos pétitions et partagez-les avec vos amis.')
+              ]
+            ),
+            m("div", {class: 'w-full sm:w-1/2 md:w-1/3 lg:w-1/4 px-4 mb-8'},
+              [
+                m("svg", {xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', class: 'w-16 h-16 text-red-500 mx-auto mb-4'},
+                  [
+                    m("path", {d: 'M20.652 11.358L12.299 3 4 11.357l1.437 1.439 2.086-2.084V21h8v-8.688l5.129 5.129 1.438-1.437zM12 13.416l-5.842-5.842 1.415-1.414 4.427 4.426 4.426-4.426 1.414 1.414z'})
+                  ]
+                ),
+                m("h2", {class: 'text-lg font-semibold text-center'}, 'Partagez avec vos amis'),
+                m("p", {class: 'text-sm text-center text-gray-600'}, 'Partagez les pétitions qui vous tiennent à cœur avec vos amis et votre famille.')
+              ]
+            )
+          ]
+        ),
+        m("div", {class: 'mt-10 text-center'},
+          [
+            m("p", {class: 'text-sm text-center text-gray-600'}, ' ',
+            m("a", {class: 'text-sm text-center', href: '/tinyPet.html#!/petitions'}, 'Je veux accéder aux pétitions ici')
+            )
+            
+          ]
+        )
+      ]
+    );
+  }
+};
+
+
+m.route(document.body, "/accueil", {
+  "/accueil": Home,
+  "/create": { onmatch: function() {
+                if (Profile.ID=="") {
+                    console.log("Non connecté");
+                    m.route.set("/login");
+                }
+                else{
+                        return Hello;
+                }
+                }},             
+  "/login":  { onmatch: function() {
+                if (Profile.ID=="") {
+                  return Login;
+                }
+                else{
+                  return Hello;
+                }
+                }},
+  "/petitions": { onmatch: function() {
+                if (Profile.ID=="") {
+                    console.log("Non connecté");
+                    m.route.set("/login");
+                }
+                else{
+                        return Hello;
+                }
+                }},
+})
+
+
+
+//m.mount(document.body, Hello)	
+
+
+</script>
+</body>
+<style>
+.petition-details-banner {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 400px; /* Ajustez cette valeur pour l'agrandir */
+  background-color: #fff;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  overflow-y: auto;
+  transition: transform 0.3s ease-in-out;
+  transform: translateX(0);
+  z-index: 1000;
+}
+
+.petition-details-banner h2 {
+  font-size: 1.5em;
+  margin-bottom: 1em;
+}
+
+.petition-details-banner p {
+  margin-bottom: 0.5em;
+}
+
+.petition-details-banner ul {
+  margin-top: 0.5em;
+}
+
+.petition-details-banner .flex {
+  display: flex;
+  gap: 1em;
+  margin-top: 1em;
+}
+
+.petition-details-banner button {
+  padding: 0.5em 1em;
+  border-radius: 4px;
+}
+
+
+
+</style>
+</html>
