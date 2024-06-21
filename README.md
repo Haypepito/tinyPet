@@ -3,11 +3,6 @@
 * Melys Yildiz
 * François Charpentier--Noyer 
 
-## Image des kinds du projet
-
-![img.png](img.png)
-![img_1.png](img_1.png)
-
 ## installation
 ```
 mvn clean package
@@ -47,7 +42,9 @@ Les utilisateurs peuvent rechercher des pétitions par tags, les résultats éta
 Les utilisateurs peuvent voir la liste de toutes les personnes ayant signé une pétition spécifique.
 
 ### Captures d'Écran
-Kinds de Google Datastore
+Kinds de Google Datastore:
+![img.png](img.png)
+![img_1.png](img_1.png)
 
 ## Statut
 ### Ce Qui Fonctionne :
